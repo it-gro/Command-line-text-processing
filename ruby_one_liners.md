@@ -84,7 +84,7 @@ DESCRIPTION
 **Prerequisites and notes**
 
 * familiarity with programming concepts like variables, printing, control structures, arrays, etc
-* familiarity with regular expression
+* familiarity with regular expressions
 * this tutorial is primarily focussed on short programs that are easily usable from command line, similar to using `grep`, `sed`, `awk`, `perl` etc
 * unless otherwise specified, consider input as ASCII encoded text only
 * this is an attempt to translate [Perl chapter](./perl_the_swiss_knife.md) to `ruby`, I don't have prior experience of using `ruby`
@@ -197,8 +197,8 @@ I bought two bananas and three mangoes
 
 **Further Reading**
 
-* [ruby-doc Pre-defined variables](https://ruby-doc.org/core-2.5.0/doc/globals_rdoc.html#label-Pre-defined+variables) for explanation on `$_` and other such special variables
-* [ruby-doc gsub](https://ruby-doc.org/core-2.5.0/String.html#method-i-gsub) for `gsub` syntax details
+* [ruby-doc: Pre-defined variables](https://ruby-doc.org/core-2.5.0/doc/globals_rdoc.html#label-Pre-defined+variables) for explanation on `$_` and other such special variables
+* [ruby-doc: gsub](https://ruby-doc.org/core-2.5.0/String.html#method-i-gsub) for `gsub` syntax details
 
 <br>
 
@@ -209,9 +209,9 @@ I bought two bananas and three mangoes
 #### <a name="regular-expressions-based-filtering"></a>Regular expressions based filtering
 
 * one way is to use `variable =~ /REGEXP/FLAGS` to check for a match
-    * `variable !~ /REGEXP/FLAGS` for negated match
+    * use `variable !~ /REGEXP/FLAGS` for negated match
     * by default acts on `$_` if variable is not specified
-    * see [ruby-doc Regexp](https://ruby-doc.org/core-2.5.0/Regexp.html) for regular expression details
+    * see [ruby-doc: Regexp](https://ruby-doc.org/core-2.5.0/Regexp.html) for documentation
 * as we need to print only selective lines, use `-n` option
     * by default, contents of `$_` will be printed if no argument is passed to `print`
 
@@ -244,7 +244,7 @@ Violets are blue,
 ```
 
 * using different delimiter
-* quoting from [ruby-doc Percent Strings](https://ruby-doc.org/core-2.5.0/doc/syntax/literals_rdoc.html#label-Percent+Strings)
+* quoting from [ruby-doc: Percent Strings](https://ruby-doc.org/core-2.5.0/doc/syntax/literals_rdoc.html#label-Percent+Strings)
 
 > If you are using “(”, “[”, “{”, “<” you must close it with “)”, “]”, “}”, “>” respectively. You may use most other non-alphanumeric characters for percent string delimiters such as “%”, “|”, “^”, etc.
 
@@ -272,49 +272,25 @@ $ ruby -ne 'print if !%r#/foo/a/#' paths.txt
 
 #### <a name="fixed-string-matching"></a>Fixed string matching
 
-* To match strings literally, use `index`
-* See [ruby-doc index](https://ruby-doc.org/core-2.5.0/String.html#method-i-index) for details
+* To match strings literally, use `include?` method
 
 ```bash
-$ # index returns matching position(starts at 0) and nil if not found
-$ # same as: perl -ne 'print if index($_, "a[5]") != -1'
 $ echo 'int a[5]' | ruby -ne 'print if /a[5]/'
-$ echo 'int a[5]' | ruby -ne 'print if $_.index("a[5]")'
+$ echo 'int a[5]' | ruby -ne 'print if $_.include?("a[5]")'
 int a[5]
 
-$ # however, string within double quotes gets interpolated, for ex
-$ ruby -e 'a=5; puts "value of a: #{a}"'
-value of a: 5
-
-$ # so, for commandline usage, better to pass string as environment variable
-$ # they are accessible via the ENV hash variable
-$ # same as: perl -le 'print $ENV{SHELL}'
-$ ruby -e 'puts ENV["SHELL"]'
-/bin/bash
-
-$ echo 'int #{a}' | ruby -ne 'print if $_.index("#{a}")'
--e:1:in `<main>': undefined local variable or method `a' for main:Object (NameError)
-$ echo 'int #{a}' | s='#{a}' ruby -ne 'print if $_.index(ENV["s"])'
+$ # however, string within double quotes gets interpolated
+$ ruby -e 'a=5; puts "value of a:\t#{a}"'
+value of a:     5
+$ # use %q (covered later) to specify single quoted string
+$ echo 'int #{a}' | ruby -ne 'print if $_.include?(%q/#{a}/)'
+int #{a}
+$ # or pass the string as environment variable
+$ echo 'int #{a}' | s='#{a}' ruby -ne 'print if $_.include?(ENV["s"])'
 int #{a}
 ```
 
-* `index` allows to use regex as well
-
-```bash
-$ # passing string
-$ ruby -ne 'print if $_.index("a+b")' eqns.txt
-a+b,pi=3.14,5e12
-i*(t+9-g)/8,4-a+b
-
-$ # passing regex
-$ ruby -ne 'print if $_.index(/a+b/)' eqns.txt
-$ ruby -ne 'print if $_.index(/a\+b/)' eqns.txt
-a+b,pi=3.14,5e12
-i*(t+9-g)/8,4-a+b
-```
-
-* return value is useful to match at specific position
-* for ex: at start/end of line
+* restricting match to start/end of line
 
 ```bash
 $ cat eqns.txt
@@ -323,22 +299,35 @@ a+b,pi=3.14,5e12
 i*(t+9-g)/8,4-a+b
 
 $ # start of line
-$ # same as: s='a+b' perl -ne 'print if index($_, $ENV{s})==0' eqns.txt
-$ s='a+b' ruby -ne 'print if $_.index(ENV["s"])==0' eqns.txt
+$ s='a+b' ruby -ne 'print if $_.start_with?(ENV["s"])' eqns.txt
 a+b,pi=3.14,5e12
 
-$ # optional 2nd argument allows to specify offset to start searching
-$ # similar to: s='a+b' perl -ne 'print if index($_, $ENV{s})>0' eqns.txt
-$ s='a+b' ruby -ne 'print if $_.index(ENV["s"], 1)' eqns.txt
+$ # end of line
+$ # -l option is needed to remove record separator (covered later)
+$ s='a+b' ruby -lne 'print if $_.end_with?(ENV["s"])' eqns.txt
+i*(t+9-g)/8,4-a+b
+```
+
+* `index` method returns matching position (starts at 0) and nil if not found
+    * supports both string and regexp
+    * optional 2nd argument allows to specify offset to start searching
+* See [ruby-doc: index](https://ruby-doc.org/core-2.5.0/String.html#method-i-index) for details
+
+```bash
+$ # passing string
+$ ruby -ne 'print if $_.index("a+b")' eqns.txt
+a+b,pi=3.14,5e12
+i*(t+9-g)/8,4-a+b
+$ ruby -ne 'print if $_.index("a+b")==0' eqns.txt
+a+b,pi=3.14,5e12
+
+$ # passing regexp
+$ ruby -ne 'print if $_.index(/[+*]/)<5' eqns.txt
+a+b,pi=3.14,5e12
 i*(t+9-g)/8,4-a+b
 
-$ # end of line
-$ # same as: s='a+b' perl -ne '$pos = length() - length($ENV{s}) - 1;
-$ #                  print if index($_, $ENV{s}) == $pos' eqns.txt
-$ s='a+b' ruby -ne 'pos = $_.length - ENV["s"].length - 1;
-                    print if $_.index(ENV["s"]) == pos' eqns.txt
+$ s='a+b' ruby -ne 'print if $_.index(ENV["s"], 1)' eqns.txt
 i*(t+9-g)/8,4-a+b
-$ # .size can also be used instead of .length
 ```
 
 <br>
@@ -347,7 +336,7 @@ $ # .size can also be used instead of .length
 
 * special variable `$.` contains total records read so far, similar to `NR` in `awk`
     * as far as I've checked the docs, there's no equivalent of awk's `FNR`
-* See also [ruby-doc eof](https://ruby-doc.org/core-2.5.0/IO.html#method-i-eof)
+* See also [ruby-doc: eof](https://ruby-doc.org/core-2.5.0/IO.html#method-i-eof)
 
 ```bash
 $ # print 2nd line
@@ -370,7 +359,7 @@ And so are you.
 ```
 
 * for large input, use `exit` to avoid unnecessary record processing
-* See [ruby-doc Control Expressions](https://ruby-doc.org/core-2.5.0/doc/syntax/control_expressions_rdoc.html) for syntax details
+* See [ruby-doc: Control Expressions](https://ruby-doc.org/core-2.5.0/doc/syntax/control_expressions_rdoc.html) for syntax details
 
 ```bash
 $ # same as: perl -ne 'if($.==234){print; exit}'
@@ -394,7 +383,7 @@ $ seq 14 25 | ruby -pe 'exit if $.==3'
 ```
 
 * selecting range of lines
-* See [ruby-doc Range](https://ruby-doc.org/core-2.5.0/Range.html) for syntax details
+* See [ruby-doc: Range](https://ruby-doc.org/core-2.5.0/Range.html) for syntax details
 
 ```bash
 $ # in this context, the range is compared against $.
@@ -472,7 +461,7 @@ $ printf ' a    ate b\tc   \n' | ruby -ane 'puts $F.length'
 
 * operators `=`, `!=`, `<`, etc will work for both string/numeric comparison
 * unlike `perl`, numeric comparison for text requires converting to appropriate numeric format
-    * See [ruby-doc string methods](https://ruby-doc.org/core-2.5.0/String.html#method-i-to_c) for details
+    * See [ruby-doc: string methods](https://ruby-doc.org/core-2.5.0/String.html#method-i-to_c) for details
 
 ```bash
 $ # if first field exactly matches the string 'apple'
@@ -563,7 +552,7 @@ baz
 ```
 
 * to process individual characters, simply use indexing on input string
-* See [ruby-doc Encoding](https://ruby-doc.org/core-2.5.0/Encoding.html) for details on handling different string encodings
+* See [ruby-doc: Encoding](https://ruby-doc.org/core-2.5.0/Encoding.html) for details on handling different string encodings
 
 ```bash
 $ # same as: perl -F -lane 'print $F[0]'
@@ -850,7 +839,7 @@ $ seq 6 | ruby -lpe '$\ = $.%3!=0 ? "-" : "\n"'
 
 * Processing consecutive lines
 * to keep the one-liner short, global variables(`$` prefix) are used here
-    * See [ruby-doc Global variables](https://ruby-doc.org/core-2.5.0/doc/syntax/assignment_rdoc.html#label-Global+Variables) for syntax details
+    * See [ruby-doc: Global variables](https://ruby-doc.org/core-2.5.0/doc/syntax/assignment_rdoc.html#label-Global+Variables) for syntax details
 
 ```bash
 $ cat poem.txt
@@ -934,10 +923,11 @@ a
 
 ## <a name="ruby-regular-expressions"></a>Ruby regular expressions
 
-* assuming that you are already familiar with basic [ERE features](./gnu_sed.md#regular-expressions)
-* examples/descriptions based only on ASCII encoding
-* See [ruby-doc Regexp](https://ruby-doc.org/core-2.5.0/Regexp.html) for syntax and feature details
-* See [rexegg ruby](https://www.rexegg.com/regex-ruby.html) for a bit of ruby regex history and differences with other regex engines
+* assuming that you are already familiar with basics of regular expressions
+    * if not, check out [Ruby Regexp](https://leanpub.com/rubyregexp) ebook - step by step guide from beginner to advanced levels
+* examples/descriptions are for string containing ASCII characters only
+* See [ruby-doc: Regexp](https://ruby-doc.org/core-2.5.0/Regexp.html) for documentation
+* See [rexegg ruby](https://www.rexegg.com/regex-ruby.html) for a bit of ruby regexp history and differences with other regexp engines
 
 <br>
 
@@ -970,9 +960,9 @@ $ echo 'foo,baz,,xyz,,,123' | ruby -lpe 'gsub(/[^,]*/, "A")'
 AA,AA,A,AA,A,A,AA
 
 $ # one workaround is to use lookarounds(covered later)
-$ echo ',baz,,xyz,,,' | ruby -lpe 'gsub(/(?<=^|,)[^,]*(?=,|$)/, "A")'
+$ echo ',baz,,xyz,,,' | ruby -lpe 'gsub(/(?<=^|,)[^,]*/, "A")'
 A,A,A,A,A,A,A
-$ echo 'foo,baz,,xyz,,,123' | ruby -lpe 'gsub(/(?<=^|,)[^,]*(?=,|$)/, "A")'
+$ echo 'foo,baz,,xyz,,,123' | ruby -lpe 'gsub(/(?<=^|,)[^,]*/, "A")'
 A,A,A,A,A,A,A
 ```
 
@@ -1017,11 +1007,14 @@ $ seq 14 | ruby -ne 'print if /2\n\z/'
 2
 12
 
-$ # without newline at end of line, both \z and \Z will give same result
+$ # without newline at end of line, both \z and \Z will behave same
+$ seq 14 | ruby -lne 'print if /2\z/'
+2
+12
 ```
 
 * delimiters and quoting
-* from [ruby-doc Percent Strings](https://ruby-doc.org/core-2.5.0/doc/syntax/literals_rdoc.html#label-Percent+Strings)
+* from [ruby-doc: Percent Strings](https://ruby-doc.org/core-2.5.0/doc/syntax/literals_rdoc.html#label-Percent+Strings)
 
 > If you are using “(”, “[”, “{”, “<” you must close it with “)”, “]”, “}”, “>” respectively. You may use most other non-alphanumeric characters for percent string delimiters such as “%”, “|”, “^”, etc.
 
@@ -1055,10 +1048,12 @@ $ # \& can also be used instead of \0
 
 #### <a name="backslash-sequences"></a>Backslash sequences
 
+* `\w` for `[A-Za-z0-9_]`
 * `\d` for `[0-9]`
 * `\s` for `[ \t\r\n\f\v]`
 * `\h` for `[0-9a-fA-F]` or `[[:xdigit:]]`
-* `\D`, `\S`, `\H`, respectively for their opposites
+* `\W`, `\D`, `\S`, `\H`, respectively for their opposites
+* See also [ruby-doc: scan](https://ruby-doc.org/core-2.5.0/String.html#method-i-scan)
 
 ```bash
 $ # same as: perl -ne 'print if /^[[:xdigit:]]+$/'
@@ -1076,6 +1071,11 @@ $ # note again the use of -l because of newline in input record
 $ # same as: perl -lpe 's/\D+/xxx/g'
 $ echo 'like 42 and 37' | ruby -lpe 'gsub(/\D+/, "xxx")'
 xxx42xxx37
+
+$ # get all matches as an array
+$ echo 'tea sea-pit sit' | ruby -ne 'puts $_.scan(/[\w\s]+/)'
+tea sea
+pit sit
 ```
 
 <br>
@@ -1087,11 +1087,11 @@ xxx42xxx37
 
 ```bash
 $ # greedy matching
-$ echo 'foo and bar and baz land good' | ruby -pe 'sub(/foo.*and/, "")'
- good
+$ echo 'foo and bar and baz land good' | ruby -lne 'print $_.scan(/.*and/)'
+["foo and bar and baz land"]
 $ # non-greedy matching
-$ echo 'foo and bar and baz land good' | ruby -pe 'sub(/foo.*?and/, "")'
- bar and baz land good
+$ echo 'foo and bar and baz land good' | ruby -lne 'print $_.scan(/.*?and/)'
+["foo and", " bar and", " baz land"]
 
 $ echo '12342789' | ruby -pe 'sub(/\d{2,5}/, "")'
 789
@@ -1126,7 +1126,6 @@ $ echo '123:42:789:good:5:bad' | ruby -pe 'sub(/:.*:[a-z]/, ":")'
 The string matched by lookarounds are like word boundaries and anchors, do not constitute as part of matched string. They are termed as **zero-width patterns**
 
 * positive lookbehind `(?<=`
-* See also [ruby-doc scan](https://ruby-doc.org/core-2.5.0/String.html#method-i-scan)
 
 ```bash
 $ s='foo=5, bar=3; x=83, y=120'
@@ -1221,8 +1220,8 @@ $ echo '1 and 2 and 3 land 4' | ruby -pe 'sub(/(and.*?){2}\Kand/, "-")'
 1 and 2 and 3 l- 4
 ```
 
-* note that `\K` behaves differently than `perl` or `vim`'s `\zs` when it comes to consecutive matches with empty string in between
-    * `\K` is [not mentioned in documentation](https://bugs.ruby-lang.org/issues/14500), so not sure if this is intended behavior or a bug
+* don't use `\K` if there are consecutive matches
+* this is because of how the regexp engine has been implemented, `perl` or `vim`'s `\zs` don't have this limitation
 
 ```bash
 $ echo ',,' | perl -pe 's/,\K/foo/g'
@@ -1330,7 +1329,7 @@ He he he
 
 * block form allows to use `ruby` code for replacement section
 
-quoting from [ruby-doc gsub](https://ruby-doc.org/core-2.5.0/String.html#method-i-gsub)
+quoting from [ruby-doc: gsub](https://ruby-doc.org/core-2.5.0/String.html#method-i-gsub)
 
 >In the block form, the current match string is passed in as a parameter, and variables such as $1, $2, $`, $&, and $' will be set appropriately. The value returned by the block will be substituted for the match on each call.
 
@@ -1390,7 +1389,7 @@ x:y:z-a-v-xc-gf
 #### <a name="quoting-metacharacters"></a>Quoting metacharacters
 
 * to match contents of string variable exactly, all metacharacters need to be escaped
-* See [ruby-doc Regexp.escape](https://ruby-doc.org/core-2.5.0/Regexp.html#method-c-escape) for syntax details
+* See [ruby-doc: Regexp.escape](https://ruby-doc.org/core-2.5.0/Regexp.html#method-c-escape) for syntax details
 
 ```bash
 $ cat eqns.txt
@@ -1407,7 +1406,7 @@ $ s='a+b' ruby -ne 'print if /#{Regexp.escape(ENV["s"])}/' eqns.txt
 a+b,pi=3.14,5e12
 i*(t+9-g)/8,4-a+b
 
-$ # use regex as needed around variable content, for ex: end of line anchor
+$ # use regexp as needed around variable content, for ex: end of line anchor
 $ ruby -pe 'BEGIN{s="a+b"}; sub(/#{Regexp.escape(s)}$/, "a**b")' eqns.txt
 a=b,a-b=c,c*d
 a+b,pi=3.14,5e12
@@ -1456,7 +1455,7 @@ White
 
 * `-r` command line option allows to specify library required
     * the `include?` method allows to check if `set` already contains the element
-    * See [ruby-doc include?(o)](https://ruby-doc.org/stdlib-2.5.0/libdoc/set/rdoc/Set.html#method-i-include-3F) for syntax details
+    * See [ruby-doc: include?](https://ruby-doc.org/stdlib-2.5.0/libdoc/set/rdoc/Set.html#method-i-include-3F) for syntax details
 
 ```bash
 $ # common lines
@@ -1482,10 +1481,10 @@ $ # alternate: ARGV.length==1 ? s.add($_) : s.include?($_) && print
 
 alternate solution by using set operations available for arrays
 
-* [ruby-doc ARGF](https://ruby-doc.org/core-2.5.0/ARGF.html) filehandle allows to read from filename arguments supplied to script
+* [ruby-doc: ARGF](https://ruby-doc.org/core-2.5.0/ARGF.html) filehandle allows to read from filename arguments supplied to script
     * if filename arguments are not present, it would act upon stdin
 * `STDIN` filehandle allows to read from stdin
-* [ruby-doc readlines](https://ruby-doc.org/core-2.5.0/IO.html#method-c-readlines) method allows to read all the lines as an array
+* [ruby-doc: readlines](https://ruby-doc.org/core-2.5.0/IO.html#method-c-readlines) method allows to read all the lines as an array
     * if filehandle is not specified, default is ARGF
 * some comparison notes
     * both files will get saved as array in memory here, while previous solution would save only first file
@@ -1613,15 +1612,15 @@ $ # ruby -e 'STDIN.readlines.zip(readlines).each {|a| puts a[1] if a[0].to_i>0}'
 
 For syntax and implementation details, see
 
-* [ruby-doc ARGF](https://ruby-doc.org/core-2.5.0/ARGF.html)
-* [ruby-doc times](https://ruby-doc.org/core-2.5.0/Integer.html#method-i-times)
-* [ruby-doc gets](https://ruby-doc.org/core-2.5.0/IO.html#method-i-gets)
+* [ruby-doc: ARGF](https://ruby-doc.org/core-2.5.0/ARGF.html)
+* [ruby-doc: times](https://ruby-doc.org/core-2.5.0/Integer.html#method-i-times)
+* [ruby-doc: gets](https://ruby-doc.org/core-2.5.0/IO.html#method-i-gets)
 
 <br>
 
 ## <a name="creating-new-fields"></a>Creating new fields
 
-* See [ruby-doc slice](https://ruby-doc.org/core-2.5.0/Array.html#method-i-slice) for syntax details
+* See [ruby-doc: slice](https://ruby-doc.org/core-2.5.0/Array.html#method-i-slice) for syntax details
 
 ```bash
 $ s='foo,bar,123,baz'
@@ -1639,7 +1638,7 @@ foo,bar,123,baz,,,42
 ```
 
 * adding a field based on existing fields
-* See [ruby-doc Percent Strings](https://ruby-doc.org/core-2.5.0/doc/syntax/literals_rdoc.html#label-Percent+Strings) for details on `%w`
+* See [ruby-doc: Percent Strings](https://ruby-doc.org/core-2.5.0/doc/syntax/literals_rdoc.html#label-Percent+Strings) for details on `%w`
 
 ```bash
 $ # adding a new 'Grade' field
@@ -1706,7 +1705,7 @@ colors_2.txt
 * `-r` command line option allows to specify library required
 * here, `set` data type is used to keep track of unique values - be it whole line or a particular field
     * the `add?` method will add element to `set` and returns `nil` if element already exists
-    * See [ruby-doc add?(o)](https://ruby-doc.org/stdlib-2.5.0/libdoc/set/rdoc/Set.html#method-i-add-3F) for syntax details
+    * See [ruby-doc: add?](https://ruby-doc.org/stdlib-2.5.0/libdoc/set/rdoc/Set.html#method-i-add-3F) for syntax details
 
 ```bash
 $ cat duplicates.txt
@@ -1800,7 +1799,7 @@ test toy 123
 
 #### <a name="using-uniq-method"></a>using uniq method
 
-* [ruby-doc uniq](https://ruby-doc.org/core-2.5.0/Array.html#method-i-uniq)
+* [ruby-doc: uniq](https://ruby-doc.org/core-2.5.0/Array.html#method-i-uniq)
 * original order is maintained
 
 ```bash
@@ -2083,7 +2082,7 @@ $ # on matching beginning/end REGEXPs respectively
 
 ## <a name="array-operations"></a>Array operations
 
-See [ruby-doc Array](https://ruby-doc.org/core-2.5.0/Array.html) for various ways to initialize and methods available
+See [ruby-doc: Array](https://ruby-doc.org/core-2.5.0/Array.html) for various ways to initialize and methods available
 
 * initialization
 
@@ -2112,7 +2111,7 @@ $ ruby -le 's = %w[foo "baz" "a\nb"]; print s[-1]'
 ```
 
 * array slices
-* See also [ruby-doc Array to Arguments Conversion](https://ruby-doc.org/core-2.5.0/doc/syntax/calling_methods_rdoc.html#label-Array+to+Arguments+Conversion)
+* See also [ruby-doc: Array to Arguments Conversion](https://ruby-doc.org/core-2.5.0/doc/syntax/calling_methods_rdoc.html#label-Array+to+Arguments+Conversion)
 
 ```bash
 $ # accessing more than one element in random order
@@ -2163,15 +2162,30 @@ $ ruby -e 'books=%w[Elantris Martian Dune Alchemist]
 
 #### <a name="filtering"></a>Filtering
 
-* based on a condition
+* based on regexp
 
-```bash
-$ # based on regex matching
+```ruby
 $ s='foo:123:bar:baz'
-$ echo "$s" | ruby -F: -lane 'print $F.select { |s| s =~ /[a-z]/ } * ":"'
+$ echo "$s" | ruby -F: -lane 'print $F.grep(/[a-z]/) * ":"'
 foo:bar:baz
 
+$ words='tryst fun glyph pity why'
+$ echo "$words" | ruby -lane 'puts $F.grep(/[a-g]/)'
+fun
+glyph
+
+$ # grep_v inverts the selection
+$ echo "$words" | ruby -lane 'puts $F.grep_v(/[aeiou]/)'
+tryst
+glyph
+why
+```
+
+* use `select` or `reject` for generic conditions
+
+```bash
 $ # to get index instead of matches
+$ s='foo:123:bar:baz'
 $ echo "$s" | ruby -F: -lane 'print $F.each_index.select{|i| $F[i] =~ /[a-z]/}'
 [0, 2, 3]
 
@@ -2181,10 +2195,9 @@ $ echo "$s" | ruby -lane 'print $F.select { |s| s.to_i < 100 } * " "'
 23 -983 5
 
 $ # filters only those elements with successful substitution
+$ # for opposite, either use negated condition or use reject instead of select
 $ echo "$s" | ruby -lane 'print $F.select { |s| s.sub!(/3/, "E") } * " "'
 2E -98E
-
-$ # for opposite, either use negated condition or use reject instead of select
 ```
 
 * random element(s)
@@ -2204,7 +2217,7 @@ $ echo "$s" | ruby -lane 'print $F.sample(2)'
 
 #### <a name="sorting"></a>Sorting
 
-* [ruby-doc sort](https://ruby-doc.org/core-2.5.0/Array.html#method-i-sort)
+* [ruby-doc: sort](https://ruby-doc.org/core-2.5.0/Array.html#method-i-sort)
 * See also [stackoverflow What does map(&:name) mean in Ruby?](https://stackoverflow.com/questions/1217088/what-does-mapname-mean-in-ruby) for explanation on `&:`
 
 ```bash
@@ -2298,7 +2311,7 @@ ECE     92      Om
 CSE     67      Amy
 ```
 
-* [ruby-doc uniq](https://ruby-doc.org/core-2.5.0/Array.html#method-i-uniq)
+* [ruby-doc: uniq](https://ruby-doc.org/core-2.5.0/Array.html#method-i-uniq)
 * order is preserved
 
 ```bash
@@ -2406,7 +2419,7 @@ $ echo 'foobar' | ruby -lpe '$_.reverse!'
 raboof
 ```
 
-* See also [ruby-doc Enumerable](https://ruby-doc.org/core-2.5.0/Enumerable.html) for more methods like `inject`
+* See also [ruby-doc: Enumerable](https://ruby-doc.org/core-2.5.0/Enumerable.html) for more methods like `inject`
 
 <br>
 
@@ -2418,7 +2431,7 @@ raboof
 
 * the `-a` command line option uses `split` and automatically saves the results in `$F` array
 * default separator is `\s+` and also strips whitespace from start/end of string
-* See also [ruby-doc - split](https://ruby-doc.org/core-2.5.0/String.html#method-i-split)
+* See also [ruby-doc: split](https://ruby-doc.org/core-2.5.0/String.html#method-i-split)
 
 ```bash
 $ # specifying maximum number of splits
@@ -2433,7 +2446,7 @@ $ # specify a negative count to preserve trailing empty fields
 $ echo ':123::' | ruby -lne 'print $_.split(/:/, -1) * ","'
 ,123,,
 
-$ # use string argument for fixed-string split instead of regex
+$ # use string argument for fixed-string split instead of regexp
 $ echo 'foo**123**baz' | ruby -lne 'print $_.split("**") * ":"'
 foo:123:baz
 
@@ -2467,7 +2480,7 @@ $ # ruby -F, -ane '$F[1].scan(/[^:]+/) {|x| print [$F[0],x,$F[2]]*","}'
 
 #### <a name="fixed-width-processing"></a>Fixed width processing
 
-* [ruby-doc unpack](https://ruby-doc.org/core-2.5.0/String.html#method-i-unpack)
+* [ruby-doc: unpack](https://ruby-doc.org/core-2.5.0/String.html#method-i-unpack)
 
 ```bash
 $ # same as: perl -lne '@x = unpack("a1xa3xa4", $_); print $x[0]'
@@ -2527,7 +2540,7 @@ $ ruby -0777 -ne 'print $_ * 100' poem.txt | wc -c
 
 #### <a name="transliteration"></a>transliteration
 
-* [ruby-doc tr](https://ruby-doc.org/core-2.5.0/String.html#method-i-tr)
+* [ruby-doc: tr](https://ruby-doc.org/core-2.5.0/String.html#method-i-tr)
 
 ```bash
 $ echo 'Uryyb Jbeyq' | ruby -pe '$_.tr!("a-zA-Z", "n-za-mN-ZA-M")'
@@ -2580,7 +2593,7 @@ I bought two bananas and three mangoes
 ```
 
 * return value of `system` or global variable `$?` can be used to act upon exit status of command issued
-* see [ruby-doc system](https://ruby-doc.org/core-2.5.0/Kernel.html#method-i-system) for details
+* see [ruby-doc: system](https://ruby-doc.org/core-2.5.0/Kernel.html#method-i-system) for details
 
 ```bash
 $ ruby -e 'es=system("ls poem.txt"); puts es'
@@ -2624,6 +2637,7 @@ $ ruby -e 'nums = %x/seq 3/; print nums'
     * [Ruby one-liners](http://benoithamelin.tumblr.com/ruby1line) based on [awk one-liners](http://www.pement.org/awk/awk1line.txt)
     * [Ruby Tricks, Idiomatic Ruby, Refactorings and Best Practices](https://franzejr.github.io/best-ruby/index.html)
     * [freecodecamp - learning Ruby](https://medium.freecodecamp.org/learning-ruby-from-zero-to-hero-90ad4eecc82d)
+    * [Ruby Regexp](https://leanpub.com/rubyregexp) ebook - step by step guide from beginner to advanced levels
     * [regex FAQ on SO](https://stackoverflow.com/questions/22937618/reference-what-does-this-regex-mean)
 * Alternatives
     * [bioruby](https://github.com/bioruby/bioruby)

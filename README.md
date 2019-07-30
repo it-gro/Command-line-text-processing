@@ -1,7 +1,3 @@
-[![Join the chat at https://gitter.im/learnbyexample/scripting_course](https://badges.gitter.im/learnbyexample/scripting_course.svg)](https://gitter.im/learnbyexample/scripting_course) [![support learnbyexample](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/learnbyexample/donate)
-
-<br>
-
 # <a name="command-line-text-processing"></a>Command Line Text Processing
 
 Learn about various commands available for common and exotic text processing needs. Examples have been tested on GNU/Linux - there'd be syntax/feature variations with other distributions, consult their respective `man` pages for details.
@@ -34,7 +30,7 @@ Rough drafts
 
 * [Wheres my file](./wheres_my_file.md)
 
-Possible additions
+Possible additions - seems like these won't be coming any time soon :(
 
 * Parsers for html, xml, csv, json, etc
 * Renaming files
@@ -48,11 +44,6 @@ Possible additions
     * Even for pull requests, open an issue for discussion before submitting PRs
     * or [gitter group chat](https://gitter.im/learnbyexample/scripting_course) for discussion as well as for help/mentorship
 * Share the repo with friends/colleagues, on social media, etc to help reach other learners
-
-<br>
-
-[![support learnbyexample](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/learnbyexample/donate)
-
 * In case you need to reach me, use [gitter private chat](https://gitter.im/learnbyexample)
     * or mail me at `echo 'yrneaolrknzcyr.arg@tznvy.pbz' | tr 'a-z' 'n-za-m'`
 
@@ -81,6 +72,10 @@ Includes only completed chapters
 
 * Read as ebook on [gitbook](https://learnbyexample.gitbooks.io/command-line-text-processing/content/)
 * Download ebook for offline reading - [link](https://www.gitbook.com/book/learnbyexample/command-line-text-processing/details)
+
+Individual ebooks with more content, explanations, exercises, etc:
+
+* [GNU grep and ripgrep](https://github.com/learnbyexample/learn_gnugrep_ripgrep)
 
 <br>
 
